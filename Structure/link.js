@@ -1,17 +1,18 @@
+const Node = require("./node");
 class Link {
-  constructor(nodeA, nodeB, valor, tempo) {
-    this.nodeA = nodeA;
-    this.nodeB = nodeB;
+  constructor(origem, destino, valor, tempo) {
+    this.Origem = origem;
+    this.Destino = destino;
     this.valor = valor;
     this.tempo = tempo;
   }
 
-  getNodeA() {
-    return this.nodeA;
+  getOrigem() {
+    return this.Origem;
   }
 
-  getNodeB() {
-    return this.nodeB;
+  getDestino() {
+    return this.Destino;
   }
 }
 

@@ -19,11 +19,20 @@ class Graph {
     return foundNode;
   }
 
+  existNode(id) {
+    for (let index = 0; index < this.nodes.length; index++) {
+      if (this.nodes[index].id == id) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   getNodes() {
     return this.nodes;
   }
 
-  findRoute(originId, qntNodes) {
+  findRoute(originId) {
     const visited = new Set();
 
     let origin = this.getNode(originId);
@@ -45,11 +54,7 @@ class Graph {
       } else {
         for (let index = 0; index < links.length; index++) {
           let node = new Node();
-          if (links[index].getNodeA().getId() != currentNode.getId()) {
-            node = links[index].getNodeA();
-          } else {
-            node = links[index].getNodeB();
-          }
+          node = links[index].getDestino();
           if (!visited.has(node.getId())) {
             visited.add(node.getId());
             queue.push(node);
@@ -58,6 +63,7 @@ class Graph {
         }
       }
     }
+    console.log(prev);
     return prev;
   }
 
@@ -70,9 +76,9 @@ class Graph {
     ) {
       path.push(actualNode);
     }
+
     path.reverse();
 
-    //Fazer isso aq em um while plz
     if (path[0] == origin) {
       console.log("Caminho encontrado:");
       console.log(path);
