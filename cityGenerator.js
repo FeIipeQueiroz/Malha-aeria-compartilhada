@@ -34,17 +34,12 @@ function generateCity(qntNodes, qntLinks) {
       let graph = new Graph();
       let links = [];
       graphInfo = data.replace(/(\r\n|\n|\r)/gm, ",").split(",");
-      console.log(graphInfo);
       for (let index = 0; index < graphInfo.length; index++) {
         switch (index % 4) {
           case 0:
           case 1:
-            console.log("index:");
-            console.log(index);
-            console.log(graph.getNode(graphInfo[index]));
             if (!graph.existNode(graphInfo[index])) {
-              graph.addNode(new Node(index, index));
-              console.log(graph.addNode(new Node(index, index)));
+              graph.addNode(new Node(graphInfo[index], graphInfo[index]));
             }
             break;
           case 2:
@@ -56,19 +51,19 @@ function generateCity(qntNodes, qntLinks) {
                 graphInfo[index + 1]
               )
             );
-            console.log(links);
+
             break;
         }
       }
+      links.forEach((element) => {
+        graph.getNode(element.getOrigem().id).addLink(element);
+      });
     });
   }
 
   readGraph();
   let prev = graph.findRoute(0);
   graph.reconstruct(0, 3, prev);
-
-  console.log(graph);
-  console.log(links);
 }
 
 function randInt(min, max) {
