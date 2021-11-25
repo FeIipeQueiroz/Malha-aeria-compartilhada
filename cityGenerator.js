@@ -24,11 +24,13 @@ function generateCity(qntNodes, qntLinks) {
         randInt(10, 60)
       )
     );
+
     graph.getNode(indexA).addLink(links[index]);
     graph.getNode(indexB).addLink(links[index]);
   }
 
-  graph.findRoute(0, 3);
+  let prev = graph.findRoute(0, qntNodes);
+  graph.reconstruct(0, 3, prev);
 
   console.log(graph);
   console.log(links);

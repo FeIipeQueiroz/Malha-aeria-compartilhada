@@ -19,16 +19,25 @@ class Graph {
     return foundNode;
   }
 
-  findRoute(originId, destinyId) {
+  getNodes() {
+    return this.nodes;
+  }
+
+  findRoute(originId, qntNodes) {
     const visited = new Set();
 
     let origin = this.getNode(originId);
-    let destiny = this.getNode(destinyId);
+
+    let prev = [];
+
+    for (let index = 0; index < originId; index++) {
+      prev[index] = null;
+    }
 
     let queue = [origin];
+    visited.add(origin.getId());
 
     while (queue.length > 0) {
-      let path = [];
       const currentNode = queue.shift();
       const links = currentNode.getLinks();
       if (links == []) {
@@ -36,24 +45,42 @@ class Graph {
       } else {
         for (let index = 0; index < links.length; index++) {
           let node = new Node();
-          if (links[index].getNodeA().getName() != currentNode.getName()) {
+          if (links[index].getNodeA().getId() != currentNode.getId()) {
             node = links[index].getNodeA();
           } else {
             node = links[index].getNodeB();
           }
-          if (node.getName() == destiny.getName()) {
-            console.log(visited);
-            console.log("achou");
-            path.push(node);
-          } else if (!visited.has(node.getName())) {
-            console.log("Visitado");
-            visited.add(node.getName());
+          if (!visited.has(node.getId())) {
+            visited.add(node.getId());
             queue.push(node);
+            prev[node.getId()] = currentNode.getId();
           }
         }
       }
     }
-    console.log(path);
+    return prev;
+  }
+
+  reconstruct(origin, end, prev) {
+    let path = [];
+    for (
+      let actualNode = end;
+      actualNode != null;
+      actualNode = prev[actualNode]
+    ) {
+      path.push(actualNode);
+    }
+    path.reverse();
+
+    //Fazer isso aq em um while plz
+    if (path[0] == origin) {
+      console.log("Caminho encontrado:");
+      console.log(path);
+      return path;
+    } else {
+      console.log("não foi encontrado um caminho");
+      return [];
+    }
   }
 }
 
