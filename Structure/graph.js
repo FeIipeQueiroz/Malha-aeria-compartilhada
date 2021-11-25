@@ -94,15 +94,10 @@ class Graph {
     }
 
     if (path[0][0] == origin) {
-      let size = path[0].length;
-      let path2;
-      console.log(path);
-      path2 = path.splice(0, 1);
-      //for (let index = 0; index < prev[end].length - 1; index++) {}
-
-      console.log("Caminhos encontrados:");
-      console.log(path);
-      console.log(path2);
+      console.log(path.length + " Caminho(s) encontrado(s):");
+      path.forEach((element) => {
+        console.log(element);
+      });
       return path;
     } else {
       console.log("não foi encontrado um caminho");
