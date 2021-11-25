@@ -32,16 +32,18 @@ class Graph {
     return this.nodes;
   }
 
-  findRoute(originId) {
+  findRoute(originId, destinyId, qntNodes) {
     const visited = new Set();
 
     let origin = this.getNode(originId);
 
     let prev = [];
 
-    for (let index = 0; index < originId; index++) {
-      prev[index] = null;
+    for (let index = 0; index < qntNodes; index++) {
+      prev.push([]);
     }
+
+    prev[originId] = null;
 
     let queue = [origin];
     visited.add(origin.getId());
@@ -56,32 +58,51 @@ class Graph {
           let node = new Node();
           node = links[index].getDestino();
           if (!visited.has(node.getId())) {
-            visited.add(node.getId());
+            if (node.getId() != destinyId) {
+              visited.add(node.getId());
+            }
             queue.push(node);
-            prev[node.getId()] = currentNode.getId();
+            prev[node.getId()].push(currentNode.getId());
           }
         }
       }
     }
+    console.log("lista de anteriores");
     console.log(prev);
     return prev;
   }
 
   reconstruct(origin, end, prev) {
     let path = [];
-    for (
-      let actualNode = end;
-      actualNode != null;
-      actualNode = prev[actualNode]
-    ) {
-      path.push(actualNode);
+    for (let index = 0; index < prev[end].length; index++) {
+      path.push([prev[end][index]]);
     }
 
-    path.reverse();
+    for (let index = 0; index < prev[end].length; index++) {
+      for (
+        let actualNode = prev[path[index][0]];
+        actualNode != null;
+        actualNode = prev[actualNode]
+      ) {
+        //console.log(typeof actualNode);
+        if (typeof actualNode == "object") {
+          path[index].push(actualNode[0]);
+        }
+      }
+      path[index].reverse();
+      path[index].push(end);
+    }
 
-    if (path[0] == origin) {
-      console.log("Caminho encontrado:");
+    if (path[0][0] == origin) {
+      let size = path[0].length;
+      let path2;
       console.log(path);
+      path2 = path.splice(0, 1);
+      //for (let index = 0; index < prev[end].length - 1; index++) {}
+
+      console.log("Caminhos encontrados:");
+      console.log(path);
+      console.log(path2);
       return path;
     } else {
       console.log("não foi encontrado um caminho");
