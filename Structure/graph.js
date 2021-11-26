@@ -55,20 +55,18 @@ class Graph {
         queue.shift();
       } else {
         for (let index = 0; index < links.length; index++) {
-          let node = new Node();
-          node = links[index].getDestino();
-          if (!visited.has(node.getId())) {
-            if (node.getId() != destinyId) {
-              visited.add(node.getId());
+          let nextNode = new Node();
+          nextNode = links[index].getDestino();
+          if (!visited.has(nextNode.getId())) {
+            if (nextNode.getId() != destinyId) {
+              visited.add(nextNode.getId());
             }
-            queue.push(node);
-            prev[node.getId()].push(currentNode.getId());
+            queue.push(nextNode);
+            prev[nextNode.getId()].push(currentNode.getId());
           }
         }
       }
     }
-    console.log("lista de anteriores");
-    console.log(prev);
     return prev;
   }
 
@@ -84,7 +82,6 @@ class Graph {
         actualNode != null;
         actualNode = prev[actualNode]
       ) {
-        //console.log(typeof actualNode);
         if (typeof actualNode == "object") {
           path[index].push(actualNode[0]);
         }

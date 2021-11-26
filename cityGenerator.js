@@ -3,7 +3,28 @@ const Node = require("./Structure/node");
 const Link = require("./Structure/link");
 const fs = require("fs");
 
-readGraph();
+/**graphA = new Graph();
+graphB = new Graph();
+graphC = new Graph();
+
+readGraph("A", graphA);
+readGraph("B", graphB);
+readGraph("C", graphC);
+
+console.log("Grafo A:", graphA);
+console.log("Grafo B:", graphB);
+console.log("Grafo C:", graphC);*/
+
+graphA = new Graph();
+readGraph(" Geral", graphA);
+console.log("Grafo geral:", graphA);
+findPath(graphA);
+
+function findPath(graph) {
+  let prev = graph.findRoute(8, 2, 10);
+  path = graph.reconstruct(8, 2, prev);
+  return path;
+}
 
 function generateCity(qntNodes, qntLinks) {
   let graph = new Graph();
@@ -29,7 +50,6 @@ function generateCity(qntNodes, qntLinks) {
     graph.getNode(indexA).addLink(links[index]);
   }
 
-  readGraph();
   let prev = graph.findRoute(0);
   graph.reconstruct(0, 3, prev);
 }
@@ -40,37 +60,34 @@ function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function readGraph() {
-  fs.readFile("./files/grafoA.txt", "utf8", function (err, data) {
-    let graph = new Graph();
-    let links = [];
-    graphInfo = data.replace(/(\r\n|\n|\r)/gm, ",").split(",");
-    for (let index = 0; index < graphInfo.length; index++) {
-      switch (index % 4) {
-        case 0:
-        case 1:
-          if (!graph.existNode(graphInfo[index])) {
-            graph.addNode(new Node(graphInfo[index], graphInfo[index]));
-          }
-          break;
-        case 2:
-          links.push(
-            new Link(
-              graph.getNode(graphInfo[index - 2]),
-              graph.getNode(graphInfo[index - 1]),
-              graphInfo[index],
-              graphInfo[index + 1]
-            )
-          );
+function readGraph(text, graph) {
+  var graphInfo;
+  let links = [];
+  data = fs.readFileSync("./files/grafo" + text + ".txt", "utf8");
+  graphInfo = data.replace(/(\r\n|\n|\r)/gm, ",").split(",");
 
-          break;
-      }
+  for (let index = 0; index < graphInfo.length; index++) {
+    switch (index % 4) {
+      case 0:
+      case 1:
+        if (!graph.existNode(graphInfo[index])) {
+          graph.addNode(new Node(graphInfo[index], graphInfo[index]));
+        }
+        break;
+      case 2:
+        links.push(
+          new Link(
+            graph.getNode(graphInfo[index - 2]),
+            graph.getNode(graphInfo[index - 1]),
+            graphInfo[index],
+            graphInfo[index + 1],
+            text
+          )
+        );
+        break;
     }
-    links.forEach((element) => {
-      graph.getNode(element.getOrigem().id).addLink(element);
-    });
-    console.log(graph);
-    let prev = graph.findRoute(0, 3, 5);
-    graph.reconstruct(0, 3, prev);
+  }
+  links.forEach((element) => {
+    graph.getNode(element.getOrigem().id).addLink(element);
   });
 }
