@@ -34,6 +34,7 @@ const serversAdress = {
 let coordinator = false;
 let graphForSend;
 
+//--------------------------------------------------------------------------------------------
 graph = new Graph();
 readGraph(process.argv[2], graph);
 
@@ -59,6 +60,9 @@ server.listen(PORT_TCP, IP_TCP, () => {
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                         FUNÇÕES
 /////////////////////////////////////////////////////////////////////////////////////////////////////
+//findPath(graph); //retorna um array de strings com todos os caminhos, para passar para a interface.
+console.log("Grafo :" + process.argv[2] + ":", graph);
+groupGraph(graph);
 //findPath(graph); //retorna um array de strings com todos os caminhos, para passar para a interface.
 
 //ler o grafo do arquivo, agrupar grafo, buscar caminho, reservar vagas, função de eleição.
@@ -95,8 +99,12 @@ function readGraph(text, graph) {
   });
 }
 
-function groupGraph() {
+function groupGraph(graph) {
   //conexão entre os sockets, compartilhamento e junção dos grafos.
+  const socket = new net.Socket();
+  /*socket.connect(PORT_TCP, IP_TCP, () => {
+    console.log("Conectado ao TCP: " + IP_TCP + ":" + PORT_TCP);
+  });*/
 }
 
 function findPath(graph, originId, destinationId) {
