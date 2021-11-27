@@ -2,13 +2,18 @@ const Graph = require("./Structure/graph");
 const Node = require("./Structure/node");
 const Link = require("./Structure/link");
 const fs = require("fs");
-const path = require("path/posix");
+const net = require("net");
 
+//--------------------------------------------------------------------------------------------
 //var coordinator = false;
+const TCP_PORT = 8000;
+const TCP_IP = "localhost";
 
+//--------------------------------------------------------------------------------------------
 graph = new Graph();
 readGraph(process.argv[2], graph);
 console.log("Grafo :" + process.argv[2] + ":", graph);
+groupGraph(graph);
 findPath(graph); //retorna um array de strings com todos os caminhos, para passar para a interface.
 
 //ler o grafo do arquivo, agrupar grafo, buscar caminho, reservar vagas, função de eleição.
@@ -50,13 +55,22 @@ function readGraph(text, graph) {
   });
 }
 
-function groupGraph() {
+function groupGraph(graph) {
   //conexão entre os sockets, compartilhamento e junção dos grafos.
+  const socket = new net.Socket();
+  socket.connect(TCP_PORT, TCP_IP, () => {
+    console.log("Conectado ao TCP: " + TCP_IP + ":" + TCP_PORT);
+  });
+
+  console.log("Grafo toString");
+  console.log(graph.toString());
+
+  socket.write(graph.toString());
 }
 
 function findPath(graph) {
   let prev = graph.findRoute(5, 7, 10);
-  path = graph.reconstruct(5, 7, prev);
+  let path = graph.reconstruct(5, 7, prev);
   return path;
 }
 

@@ -62,32 +62,64 @@ class Graph {
               visited.add(nextNode.getId());
             }
             queue.push(nextNode);
-            prev[nextNode.getId()].push(currentNode.getId());
+          }
+          if (nextNode.getId() != originId) {
+            let repeat = false;
+            for (
+              let index = 0;
+              index < prev[nextNode.getId()].length;
+              index++
+            ) {
+              console.log(prev[nextNode.getId()][index]);
+              if (prev[nextNode.getId()][index] == currentNode.getId()) {
+                repeat = true;
+              }
+            }
+            if (!repeat) {
+              prev[nextNode.getId()].push(currentNode.getId());
+            }
           }
         }
       }
     }
+    console.log(prev);
     return prev;
   }
 
   reconstruct(origin, end, prev) {
     let path = [];
+    let i = prev[end].length;
     for (let index = 0; index < prev[end].length; index++) {
       path.push([prev[end][index]]);
     }
 
-    for (let index = 0; index < prev[end].length; index++) {
+    for (let indexA = 0; indexA < i; indexA++) {
       for (
-        let actualNode = prev[path[index][0]];
+        let actualNode = prev[path[indexA][0]];
         actualNode != null;
         actualNode = prev[actualNode]
       ) {
+        //Verificar tamanho do array de anteriores e criar um caminho para cada instância
+        //Por algum motivo ele ta copiando a referencia ao espaço e n os indices
+        if (typeof prev[actualNode] == "object") {
+          console.log(prev[actualNode].length);
+          if (prev[actualNode].length > 1) {
+            for (let indexB = 1; indexB < prev[actualNode].length; indexB++) {
+              console.log(path[indexB]);
+              path.push(path[indexB]);
+              i++;
+            }
+          }
+        }
+
         if (typeof actualNode == "object") {
-          path[index].push(actualNode[0]);
+          path[indexA].push(actualNode[0]);
         }
       }
-      path[index].reverse();
-      path[index].push(end);
+      //to adicoinando incondicionalmente então mesmo que o caminho não exita ele força a existir
+      path[indexA].push(origin);
+      path[indexA].reverse();
+      path[indexA].push(end);
     }
 
     if (path[0][0] == origin) {
