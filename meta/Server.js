@@ -3,36 +3,35 @@ const { argv } = require("process");
 
 const IP_TCP = "127.0.0.1";
 let PORT_TCP = 8080;
-
+let PORT_CON = 0;
+let serverDecrease = "A";
+let seats = 10;
 switch (process.argv[2]) {
   case "A":
     PORT_HTTP = 7000;
     PORT_TCP = 7080;
+    PORT_CON = 8080;
+    serverDecrease = "B";
     break;
   case "B":
     PORT_HTTP = 8000;
     PORT_TCP = 8080;
-    break;
-  case "C":
-    PORT_HTTP = 9000;
-    PORT_TCP = 9080;
+    PORT_CON = 7080;
+    seats = 9;
     break;
 }
 
 let coordinator = false;
 
-let seats = 10;
-
-const socket = new net.Socket(); //tem algo errado ;-;
-console.log(socket.address());
-console.log("conectando em" + PORT_TCP + ", 127.0.0.1");
-socket.connect(PORT_TCP, "127.0.0.1");
 if (process.argv[2] == "A") {
+  const socket = new net.Socket();
+  socket.connect(PORT_CON, IP_TCP);
   socket.write(
     JSON.stringify({
       type: "verify",
     })
   );
+  socket.end();
 }
 
 let server = net.createServer((socket) => {
@@ -46,8 +45,8 @@ let server = net.createServer((socket) => {
         break;
 
       case "returnVerify":
-        console.log("Verificando se existe coordenador");
-        isCoordinator = check(data);
+        console.log("Retorno pra ver se existe coordenador");
+        let isCoordinator = check(data);
         if (!isCoordinator) {
           elect(socket, data);
         }
@@ -55,26 +54,49 @@ let server = net.createServer((socket) => {
 
       case "elect":
         console.log("Elegendo um coordenador");
-        elect(socket, data);
-        break;
+        let dataIsCoordinator = check(data);
+        if (!dataIsCoordinator) {
+          elect(socket, data);
+        } else if (coordinator) break;
       case "decreaseSeats":
-        console.log("Decrementando assentos");
-        decraseSeats(data.amount, data.serverID, socket);
+        if (seats - data.amount < 0) {
+          console.log("Não existe assentos suficientes");
+        } else {
+          decraseSeats(data.amount, data.serverID, data.isCoordinator);
+        }
+
         break;
+      case "amount":
+        console.log("Checando a quantidade de assentos");
+        amountVerify(data.amount, data.serverID);
     }
   });
+
+  socket.on("close", (err) => {
+    console.log("Aconteceram coisas", err.message);
+  });
 });
+server.on("error", (e) => {
+  console.log("Address in use, retrying...");
+  setTimeout(() => {
+    server.close();
+    server.listen(PORT_TCP, IP_TCP);
+  }, 1000);
+});
+
+server.listen(PORT_TCP, IP_TCP);
 
 function verify(socket) {
   let server = new net.Socket();
-  server.connect(socket.address().port, socket.address().addreess);
+  server.connect(PORT_CON, socket.address().addreess);
   server.write(
     JSON.stringify({
       type: "returnVerify",
-      coordinator: this.coordinator,
-      seats: this.seats,
+      coordinator: coordinator,
+      seats: seats,
     })
   );
+  server.end();
 }
 
 function check(data) {
@@ -86,32 +108,68 @@ function check(data) {
 }
 
 function elect(socket, data) {
-  if (this.seats > data.seats) {
-    this.isCoordinator = true;
+  if (seats < data.seats) {
+    coordinator = true;
+    console.log(process.argv[2], "é o coordenador");
+    decraseSeats(2, serverDecrease, coordinator);
   } else {
     let server = new net.Socket();
-    server.connect(socket.address().port, socket.address().addreess);
+
+    server.connect(PORT_CON, socket.address().address);
     server.write(
       JSON.stringify({
         type: "elect",
-        seats: this.seats,
+        seats: seats,
       })
     );
+    server.end();
   }
 }
 
-function decraseSeats(amount, serverID, socket) {
-  if (process.argv[2] == serverID) {
-    this.seats = this.seats - amount;
+function decraseSeats(amount, serverID, isCoordinator) {
+  if (process.argv[2] == serverID && isCoordinator) {
+    console.log("Decrementando assentos");
+    seats = seats - amount;
+    console.log(seats);
+    let socket = new net.Socket();
+    socket.connect(PORT_CON, "127.0.0.1");
+    socket.write(
+      JSON.stringify({
+        type: "amount",
+        amount: seats,
+        serverID: serverID,
+      })
+    );
+    socket.end();
   } else {
     let server = new net.Socket();
-    server.connect(socket.address().port, socket.address().addreess);
+    server.connect(PORT_CON, "127.0.0.1");
     server.write(
       JSON.stringify({
         type: "decreaseSeats",
-        amount: "2",
-        serverID: "A",
+        amount: amount,
+        serverID: serverID,
+        isCoordinator: coordinator,
       })
     );
+    server.end();
+  }
+}
+
+function amountVerify(amount, serverID) {
+  if (amount < seats) {
+    console.log(amount, seats);
+
+    coordinator = false;
+    const socket = new net.Socket();
+    socket.connect(PORT_CON, IP_TCP);
+    socket.write(
+      JSON.stringify({
+        type: "verify",
+      })
+    );
+    socket.end();
+  } else {
+    console.log("não é");
   }
 }
