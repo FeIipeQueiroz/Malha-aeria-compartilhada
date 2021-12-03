@@ -1,22 +1,24 @@
 const net = require("net");
-const { argv } = require("process");
 
-const IP_TCP = "127.0.0.1";
+let IP_TCP = "127.0.0.1";
+let IP_CON = "127.0.0.2";
 let PORT_TCP = 8080;
 let PORT_CON = 0;
 let serverDecrease = "A";
 let seats = 10;
 switch (process.argv[2]) {
   case "A":
-    PORT_HTTP = 7000;
-    PORT_TCP = 7080;
+    IP_TCP = "127.0.0.2";
+    IP_CON = "127.0.0.1";
+    PORT_HTTP = 8000;
+    PORT_TCP = 8080;
     PORT_CON = 8080;
     serverDecrease = "B";
     break;
   case "B":
     PORT_HTTP = 8000;
     PORT_TCP = 8080;
-    PORT_CON = 7080;
+    PORT_CON = 8080;
     seats = 9;
     break;
 }
@@ -25,7 +27,7 @@ let coordinator = false;
 
 if (process.argv[2] == "A") {
   const socket = new net.Socket();
-  socket.connect(PORT_CON, IP_TCP);
+  socket.connect(PORT_CON, IP_CON);
   socket.write(
     JSON.stringify({
       type: "verify",
@@ -72,7 +74,7 @@ let server = net.createServer((socket) => {
     }
   });
 
-  socket.on("close", (err) => {
+  socket.on("error", (err) => {
     console.log("Aconteceram coisas", err.message);
   });
 });
@@ -84,11 +86,11 @@ server.on("error", (e) => {
   }, 1000);
 });
 
-server.listen(PORT_TCP, IP_TCP);
+server.listen(PORT_TCP, IP_TCP, () => console.log(PORT_TCP, IP_TCP));
 
 function verify(socket) {
   let server = new net.Socket();
-  server.connect(PORT_CON, socket.address().addreess);
+  server.connect(PORT_CON, IP_CON);
   server.write(
     JSON.stringify({
       type: "returnVerify",
@@ -115,7 +117,7 @@ function elect(socket, data) {
   } else {
     let server = new net.Socket();
 
-    server.connect(PORT_CON, socket.address().address);
+    server.connect(PORT_CON, IP_CON);
     server.write(
       JSON.stringify({
         type: "elect",
@@ -132,7 +134,7 @@ function decraseSeats(amount, serverID, isCoordinator) {
     seats = seats - amount;
     console.log(seats);
     let socket = new net.Socket();
-    socket.connect(PORT_CON, "127.0.0.1");
+    socket.connect(PORT_CON, IP_CON);
     socket.write(
       JSON.stringify({
         type: "amount",
@@ -143,7 +145,7 @@ function decraseSeats(amount, serverID, isCoordinator) {
     socket.end();
   } else {
     let server = new net.Socket();
-    server.connect(PORT_CON, "127.0.0.1");
+    server.connect(PORT_CON, IP_CON);
     server.write(
       JSON.stringify({
         type: "decreaseSeats",
@@ -162,7 +164,7 @@ function amountVerify(amount, serverID) {
 
     coordinator = false;
     const socket = new net.Socket();
-    socket.connect(PORT_CON, IP_TCP);
+    socket.connect(PORT_CON, IP_CON);
     socket.write(
       JSON.stringify({
         type: "verify",
