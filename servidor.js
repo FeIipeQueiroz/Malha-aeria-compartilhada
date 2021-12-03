@@ -19,162 +19,205 @@ let disconnectCounter = 0;
 let priorityList = [];
 let requestList = [];
 
+let serverGraphs = [
+  { id: "A", graph: [], check: false },
+  { id: "B", graph: [], check: false },
+  { id: "C", graph: [], check: false },
+];
+
 let electReturnCount = 0;
 let listForElection = [];
 let requestAmount = randomInt(0, 15);
 
-if (isMainThread) {
-  const IP_HTTP = "26.91.70.227";
-  let PORT_HTTP = 8000;
+//if (isMainThread) {
+const IP_HTTP = "26.91.70.227";
+let PORT_HTTP = 8000;
 
-  const IP_TCP = "26.91.70.227";
-  let PORT_TCP = 8080;
+const IP_TCP = "26.91.70.227";
+let PORT_TCP = 8080;
 
-  switch (process.argv[2]) {
-    case "A":
-      PORT_HTTP = 7000;
-      PORT_TCP = 7080;
-      break;
-    case "B":
-      PORT_HTTP = 8000;
-      PORT_TCP = 8080;
-      break;
-    case "C":
-      PORT_HTTP = 9000;
-      PORT_TCP = 9080;
-      break;
+switch (process.argv[2]) {
+  case "A":
+    PORT_HTTP = 7000;
+    PORT_TCP = 7080;
+    break;
+  case "B":
+    PORT_HTTP = 8000;
+    PORT_TCP = 8080;
+    break;
+  case "C":
+    PORT_HTTP = 9000;
+    PORT_TCP = 9080;
+    break;
+}
+
+graph = new Graph();
+readGraph(process.argv[2], graph);
+serverGraphs.forEach((element) => {
+  if (element.id == process.argv[2]) {
+    element.graph = graph;
+    element.check = true;
   }
+});
 
-  graph = new Graph();
-  readGraph(process.argv[2], graph);
+//--------------------------------------------------------------------------------------------
 
-  //--------------------------------------------------------------------------------------------
+/*const worker = new Worker(__filename, {
+  workerData: { IP_HTTP: IP_HTTP, PORT_HTTP: PORT_HTTP },
+});*/
 
-  const worker = new Worker(__filename, {
-    workerData: { IP_HTTP: IP_HTTP, PORT_HTTP: PORT_HTTP },
-  });
+//Servidor TCP
+stepOne();
+const server = net.createServer((socket) => {
+  socket.on("data", (message) => {
+    message = JSON.parse(message);
 
-  //Servidor TCP
-  stepOne();
-  const server = net.createServer((socket) => {
-    socket.on("data", (message) => {
-      message = JSON.parse(message);
-
-      switch (message.type) {
-        case "elect":
-          isCoordinator = false;
-          const response = new net.Socket();
-          serversAdress.forEach((element) => {
-            if (element.id == message.id) {
-              response.connect(element.port, element.ip);
-              response.write(
-                JSON.stringify({
-                  type: "electReturn",
-                  requestAmount: requestAmount,
-                  id: process.argv[2],
-                })
-              );
-              response.end();
-            }
-          });
-          break;
-        case "electReturn":
-          server.getConnections((error, count) => {
-            electReturnCount++;
-            if (electReturnCount == count / 2) {
-              electReturnCount = 0;
-              listForElection.push(message);
-              verifyRequestAmount(listForElection);
-              listForElection = [];
-            } else {
-              listForElection.push(message);
-            }
-          });
-          break;
-        case "electionResult":
-          if (message.id == process.argv[2]) {
-            isCoordinator = true;
+    switch (message.type) {
+      case "elect":
+        isCoordinator = false;
+        const response = new net.Socket();
+        serversAdress.forEach((element) => {
+          if (element.id == message.id) {
+            response.connect(element.port, element.ip);
+            response.write(
+              JSON.stringify({
+                type: "electReturn",
+                requestAmount: requestAmount,
+                id: process.argv[2],
+              })
+            );
+            response.end();
           }
-          actualCoordinatorID = message.id;
-          priorityList = message.priorityList;
-          console.log("O coordenador atual é", actualCoordinatorID);
-          break;
-        case "syncronize":
-          serversAdress.forEach((element) => {
-            const response = new net.Socket();
-            if (element.id == message.id) {
-              response.connect(element.port, element.ip);
-              response.on("end", () => {});
-              response.on("error", () => {});
-            }
-          });
-          break;
-        default:
-          console.log(message);
-      }
-    });
-    socket.on("error", () => {
-      socket.end();
-      server.getConnections((error, count) => {
-        if (count == 0) {
-          console.log("Sem conexões. Me tornando o Coordenador");
+        });
+        break;
+      case "electReturn":
+        server.getConnections((error, count) => {
+          electReturnCount++;
+          if (electReturnCount == count / 2) {
+            electReturnCount = 0;
+            listForElection.push(message);
+            verifyRequestAmount(listForElection);
+            listForElection = [];
+          } else {
+            listForElection.push(message);
+          }
+        });
+        break;
+      case "electionResult":
+        if (message.id == process.argv[2]) {
           isCoordinator = true;
+        }
+        actualCoordinatorID = message.id;
+        priorityList = message.priorityList;
+        console.log("O coordenador atual é", actualCoordinatorID);
+        break;
+      case "syncronize":
+        serversAdress.forEach((element) => {
+          const response = new net.Socket();
+          if (element.id == message.id) {
+            response.connect(element.port, element.ip);
+            response.write(
+              JSON.stringify({
+                type: "syncronizeReturn",
+                graph: graphForSend,
+                id: process.argv[2],
+              })
+            );
+            serverGraphs.forEach((element) => {
+              if (element.id == message.id && !element.check) {
+                element.graph = graph;
+                element.check = true;
+              }
+            });
+            groupGraph(serverGraphs);
+            response.on("end", () => {});
+            response.on("error", () => {
+              console.log("a");
+            });
+          }
+        });
+        break;
+      case "syncronizeReturn":
+        serverGraphs.forEach((element) => {
+          if (element.id == message.id && !element.check) {
+            element.graph = graph;
+            element.check = true;
+          }
+        });
+        groupGraph(serverGraphs);
+
+        break;
+      default:
+        console.log(message);
+    }
+  });
+  socket.on("error", () => {
+    socket.end();
+    server.getConnections((error, count) => {
+      if (count == 0) {
+        console.log("Sem conexões. Me tornando o Coordenador");
+        actualCoordinatorID = process.argv[2];
+        isCoordinator = true;
+      } else {
+        if (isCoordinator) {
+          elect();
         } else {
-          if (isCoordinator) {
-            elect();
-          } else if (priorityList[0].id == process.argv[2]) {
+          if (priorityList[0].id == process.argv[2]) {
+            isCoordinator = true;
             elect();
           }
         }
-      });
-    });
-    socket.on("close", () => {
-      socket.end();
-    });
-  });
-  server.on("connection", (socket) => {});
-
-  setInterval(() => {
-    server.getConnections((error, count) => {
-      if (isCoordinator && count > 0) {
-        console.log("Iniciando uma nova eleição...");
-        elect();
       }
     });
-  }, 5000);
-
-  server.listen(PORT_TCP, IP_TCP, () => {
-    console.log("Servidor TCP =", IP_TCP + ":" + PORT_TCP);
-    console.log("-------------------------------------");
   });
-} else {
-  //Rotas da interface
-  const app = express();
-  app.post("/searchRoutes", function (req, res) {
-    origin = req.origin;
-    destination = req.destination;
+  socket.on("close", () => {
+    socket.end();
   });
+});
+server.on("connection", (socket) => {});
 
-  app.get("/purchaseRoute", function (req, res) {
-    //requestList.push();
-    console.log(isCoordinator);
-    //while (!isCoordinator) {}
-    console.log("Chegou", workerData.PORT_HTTP);
-    res.write("teste");
-    res.end("Teste");
+setInterval(() => {
+  server.getConnections((error, count) => {
+    if (isCoordinator && count > 0) {
+      console.log("Iniciando uma nova eleição...");
+
+      elect();
+    }
+  });
+}, 5000);
+
+server.listen(PORT_TCP, IP_TCP, () => {
+  console.log("Servidor TCP =", IP_TCP + ":" + PORT_TCP);
+  console.log("-------------------------------------");
+});
+//} else {
+//Rotas da interface
+const app = express();
+app.post("/searchRoutes", function (req, res) {
+  origin = req.origin;
+  destination = req.destination;
+});
+
+app.get("/purchaseRoute", function (req, res) {
+  //requestList.push();
+
+  if (isCoordinator) {
+    res.write("Servidor " + process.argv[2]);
     res.send();
-    //requestList.pop();
-    //responde pra interface
-  });
+  } else {
+    res.write("Não sou coordenador");
+    res.send();
+  }
 
-  app.listen(workerData.PORT_HTTP, workerData.IP_HTTP, () => {
-    console.log(
-      "Servidor HTTP =",
-      workerData.IP_HTTP + ":" + workerData.PORT_HTTP
-    );
-    console.log("-------------------------------------");
-  });
-}
+  //requestList.pop();
+  //responde pra interface
+});
+
+app.listen(PORT_HTTP, IP_HTTP, () => {
+  console.log("Servidor HTTP =", IP_HTTP + ":" + PORT_HTTP);
+  console.log("-------------------------------------");
+});
+//}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                         FUNÇÕES
@@ -219,11 +262,8 @@ function readGraph(text, graph) {
 }
 
 function groupGraph(graph) {
+  //recebe um array de objeto {id, graph, check}
   //conexão entre os sockets, compartilhamento e junção dos grafos.
-  const socket = new net.Socket();
-  /*socket.connect(PORT_TCP, IP_TCP, () => {
-    console.log("Conectado ao TCP: " + IP_TCP + ":" + PORT_TCP);
-  });*/
 }
 
 function findPath(graph, originId, destinationId) {
@@ -239,7 +279,6 @@ function reserveSeat() {
 }
 
 function elect() {
-  isCoordinator = false;
   serversAdress.forEach((element) => {
     if (element.id != process.argv[2]) {
       const socket = new net.Socket();
@@ -278,7 +317,11 @@ function stepOne() {
       });
       socket.on("connect", () => {
         socket.write(
-          JSON.stringify({ type: "syncronize", id: process.argv[2] })
+          JSON.stringify({
+            type: "syncronize",
+            id: process.argv[2],
+            graph: graphForSend,
+          })
         );
         if (connectionCounter == 0) {
           elect();
@@ -308,6 +351,7 @@ function verifyRequestAmount(rcvListForElection) {
   priorityListAux.pop();
   priorityListAux = priorityListAux.reverse();
   priorityList = priorityListAux;
+  isCoordinator = false;
   console.log("O coordenador atual é", result.id);
   if (result.id == process.argv[2]) {
     isCoordinator = true;
