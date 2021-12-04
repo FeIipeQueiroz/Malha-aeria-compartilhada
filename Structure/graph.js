@@ -88,49 +88,23 @@ class Graph {
 
   reconstruct(origin, end, prev) {
     let path = [];
-    let i = prev[end].length;
-    for (let index = 0; index < prev[end].length; index++) {
-      path.push([prev[end][index]]);
-    }
+    let visited = []; //em um caminho só pode passar no nó uma vez
+    path.push([end]);
 
-    for (let indexA = 0; indexA < i; indexA++) {
-      for (
-        let actualNode = prev[path[indexA][0]];
-        actualNode != null;
-        actualNode = prev[actualNode]
-      ) {
-        //Verificar tamanho do array de anteriores e criar um caminho para cada instância
-        //Por algum motivo ele ta copiando a referencia ao espaço e n os indices
-        if (typeof prev[actualNode] == "object") {
-          console.log(prev[actualNode].length);
-          if (prev[actualNode].length > 1) {
-            for (let indexB = 1; indexB < prev[actualNode].length; indexB++) {
-              console.log(path[indexB]);
-              path.push(path[indexB]);
-              i++;
-            }
-          }
+    for (let currentNode = end; currentNode != null; prev[currentNode]) {
+      if (prev[currentNode].length == 1) {
+        path.push(prev[currentNode]);
+      } else {
+        let pathClone = [];
+        for (let index = 0; index < prev[currentNode].length; index++) {
+          pathClone[index] = [...path];
+          pathClone[index].push(prev[currentNode][index]);
         }
-
-        if (typeof actualNode == "object") {
-          path[indexA].push(actualNode[0]);
+        for (let index = 0; index < pathClone.length; index++) {
+          path = path.concat(pathClone[index]);
         }
       }
-      //to adicoinando incondicionalmente então mesmo que o caminho não exita ele força a existir
-      path[indexA].push(origin);
-      path[indexA].reverse();
-      path[indexA].push(end);
-    }
-
-    if (path[0][0] == origin) {
-      console.log(path.length + " Caminho(s) encontrado(s):");
-      path.forEach((element) => {
-        console.log(element);
-      });
-      return path;
-    } else {
-      console.log("não foi encontrado um caminho");
-      return [];
+      console.log(path);
     }
   }
 }
