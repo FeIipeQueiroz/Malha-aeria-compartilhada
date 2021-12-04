@@ -8,9 +8,9 @@ const { randomInt } = require("crypto");
 const { Worker, isMainThread, workerData } = require("worker_threads");
 
 let serversAdress = [
-  { ip: "26.91.70.227", port: 7080, id: "A" },
-  { ip: "26.91.70.227", port: 8080, id: "B" },
-  { ip: "26.91.70.227", port: 9080, id: "C" },
+  { ip: "localhost", port: 7080, id: "A" },
+  { ip: "localhost", port: 8080, id: "B" },
+  { ip: "localhost", port: 9080, id: "C" },
 ];
 let isCoordinator = false;
 let actualCoordinatorID = "";
@@ -30,10 +30,10 @@ let listForElection = [];
 let requestAmount = randomInt(0, 15);
 
 //if (isMainThread) {
-const IP_HTTP = "26.91.70.227";
+const IP_HTTP = "localhost";
 let PORT_HTTP = 8000;
 
-const IP_TCP = "26.91.70.227";
+const IP_TCP = "localhost";
 let PORT_TCP = 8080;
 
 switch (process.argv[2]) {
@@ -51,11 +51,11 @@ switch (process.argv[2]) {
     break;
 }
 
-graph = new Graph();
-readGraph(process.argv[2], graph);
+let mainGraph = new Graph();
+readGraph(process.argv[2], mainGraph, true, null);
 serverGraphs.forEach((element) => {
   if (element.id == process.argv[2]) {
-    element.graph = graph;
+    element.graph = mainGraph;
     element.check = true;
   }
 });
@@ -125,7 +125,9 @@ const server = net.createServer((socket) => {
             );
             serverGraphs.forEach((element) => {
               if (element.id == message.id && !element.check) {
-                element.graph = graph;
+                auxGraph = new Graph();
+                readGraph(message.id, auxGraph, false, message.graph);
+                element.graph = auxGraph;
                 element.check = true;
               }
             });
@@ -140,12 +142,13 @@ const server = net.createServer((socket) => {
       case "syncronizeReturn":
         serverGraphs.forEach((element) => {
           if (element.id == message.id && !element.check) {
-            element.graph = graph;
+            auxGraph = new Graph();
+            readGraph(message.id, auxGraph, false, message.graph);
+            element.graph = auxGraph;
             element.check = true;
           }
         });
         groupGraph(serverGraphs);
-
         break;
       default:
         console.log(message);
@@ -191,11 +194,16 @@ server.listen(PORT_TCP, IP_TCP, () => {
   console.log("-------------------------------------");
 });
 //} else {
+///////////////////////////
+//                  ROTAS
+///////////////////////////
 //Rotas da interface
 const app = express();
-app.post("/searchRoutes", function (req, res) {
-  origin = req.origin;
-  destination = req.destination;
+app.get("/searchRoutes", function (req, res) {
+  origin = 2;
+  destination = 8;
+  res.write(findPath(mainGraph, origin, destination));
+  res.send();
 });
 
 app.get("/purchaseRoute", function (req, res) {
@@ -229,11 +237,15 @@ app.listen(PORT_HTTP, IP_HTTP, () => {
 
 //ler o grafo do arquivo, agrupar grafo, buscar caminho, reservar vagas, função de eleição.
 
-function readGraph(text, graph) {
+function readGraph(text, graph, flag, string) {
   var graphInfo;
   let links = [];
-  graphForSend = fs.readFileSync("./files/grafo" + text + ".txt", "utf8");
-  graphInfo = graphForSend.replace(/(\r\n|\n|\r)/gm, ",").split(",");
+  if (flag) {
+    graphForSend = fs.readFileSync("./files/grafo" + text + ".txt", "utf8");
+    graphInfo = graphForSend.replace(/(\r\n|\n|\r)/gm, ",").split(",");
+  } else {
+    graphInfo = string.replace(/(\r\n|\n|\r)/gm, ",").split(",");
+  }
 
   for (let index = 0; index < graphInfo.length; index++) {
     switch (index % 4) {
@@ -262,8 +274,23 @@ function readGraph(text, graph) {
 }
 
 function groupGraph(graph) {
-  //recebe um array de objeto {id, graph, check}
-  //conexão entre os sockets, compartilhamento e junção dos grafos.
+  let graphMerged = new Graph();
+  console.log("Agrupando grafos");
+  graph.forEach((element) => {
+    if (element.check == true) {
+      for (let index = 0; index < element.graph.nodes.length; index++) {
+        let aux = graphMerged.getNode(element.graph.nodes[index].id);
+        if (aux.id == undefined) {
+          graphMerged.addNode(element.graph.nodes[index]);
+        } else {
+          element.graph.nodes[index].getLinks().forEach((link) => {
+            graphMerged.getNode(element.graph.nodes[index].id).addLink(link);
+          });
+        }
+      }
+      mainGraph = graphMerged;
+    }
+  });
 }
 
 function findPath(graph, originId, destinationId) {
