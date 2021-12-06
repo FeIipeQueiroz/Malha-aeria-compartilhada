@@ -3,14 +3,15 @@ const Node = require("./Structure/node");
 const Link = require("./Structure/link");
 const fs = require("fs");
 const express = require("express");
+
 const net = require("net");
 const { randomInt } = require("crypto");
 const { Worker, isMainThread, workerData } = require("worker_threads");
 
 let serversAdress = [
-  { ip: "localhost", port: 7080, id: "A" },
-  { ip: "localhost", port: 8080, id: "B" },
-  { ip: "localhost", port: 9080, id: "C" },
+  { ip: "26.91.70.227", port: 7080, id: "A" },
+  { ip: "26.91.70.227", port: 8080, id: "B" },
+  { ip: "26.91.70.227", port: 9080, id: "C" },
 ];
 let isCoordinator = false;
 let actualCoordinatorID = "";
@@ -30,10 +31,10 @@ let listForElection = [];
 let requestAmount = randomInt(0, 15);
 
 //if (isMainThread) {
-const IP_HTTP = "localhost";
+const IP_HTTP = "26.91.70.227";
 let PORT_HTTP = 8000;
 
-const IP_TCP = "localhost";
+const IP_TCP = "26.91.70.227";
 let PORT_TCP = 8080;
 
 switch (process.argv[2]) {
@@ -150,6 +151,9 @@ const server = net.createServer((socket) => {
         });
         groupGraph(serverGraphs);
         break;
+      case "decreaseSeats":
+        decreaseSeats(message.links);
+        break;
       default:
         console.log(message);
     }
@@ -199,6 +203,8 @@ server.listen(PORT_TCP, IP_TCP, () => {
 ///////////////////////////
 //Rotas da interface
 const app = express();
+app.use(express.json());
+
 app.get("/searchRoutes", function (req, res) {
   origin = 2;
   destination = 8;
@@ -206,11 +212,25 @@ app.get("/searchRoutes", function (req, res) {
   res.send();
 });
 
-app.get("/purchaseRoute", function (req, res) {
+app.post("/purchaseRoute", function (req, res) {
   //requestList.push();
 
   if (isCoordinator) {
     res.write("Servidor " + process.argv[2]);
+
+    isPossible = true;
+    req.body.route.map((link) => {
+      if (link.seats <= 0) {
+        // Alterar a verificação
+        isPossible = false;
+      }
+    });
+    if (isPossible) {
+      reserveSeat(req.body.route);
+    } else {
+      res.write(" Não foi possível");
+    }
+
     res.send();
   } else {
     res.write("Não sou coordenador");
@@ -299,9 +319,78 @@ function findPath(graph, originId, destinationId) {
   return path;
 }
 
-function reserveSeat() {
-  /**if (coordinator) {
-  }*/
+function reserveSeat(route) {
+  let v1 = [];
+  let v2 = [];
+  let v3 = [];
+  route.map((link) => {
+    switch (link.company) {
+      case "A":
+        v1.push(link);
+        break;
+      case "B":
+        v2.push(link);
+        break;
+      case "C":
+        v3.push(link);
+        break;
+    }
+  });
+
+  switch (process.argv[2]) {
+    case "A":
+      decreaseSeats(v1);
+      break;
+    case "B":
+      decreaseSeats(v2);
+      break;
+    case "C":
+      decreaseSeats(v3);
+      break;
+  }
+
+  serversAdress.forEach((element) => {
+    if (element.id != process.argv[2]) {
+      const socket = new net.Socket();
+      socket.connect(element.port, element.ip);
+      switch (element.id) {
+        case "A":
+          if (v1.length > 0) {
+            socket.write(
+              JSON.stringify({
+                type: "decreaseSeats",
+                links: v1,
+              })
+            );
+          }
+
+          break;
+        case "B":
+          if (v2.length > 0) {
+            socket.write(
+              JSON.stringify({
+                type: "decreaseSeats",
+                links: v2,
+              })
+            );
+          }
+          break;
+        case "C":
+          if (v3.length > 0) {
+            socket.write(
+              JSON.stringify({
+                type: "decreaseSeats",
+                links: v3,
+              })
+            );
+          }
+          break;
+      }
+      socket.on("error", () => {});
+      socket.end();
+    }
+  });
+
   //acessar rota do grafo e reduzir o seat de todos os links utilizados(somente coordenador).
 }
 
@@ -442,4 +531,17 @@ function partition(items, left, right) {
     }
   }
   return i;
+}
+
+function decreaseSeats(vector) {
+  serverGraphs.map((element) => {
+    if (element.id == process.argv[2]) {
+      vector.map((link) => {
+        element.graph.getNode(link.origem).getLink(link.destino).seats--;
+        console.log(
+          element.graph.getNode(link.origem).getLink(link.destino).seats
+        );
+      });
+    }
+  });
 }
