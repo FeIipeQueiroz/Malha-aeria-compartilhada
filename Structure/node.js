@@ -13,6 +13,17 @@ class Node {
     return this.links;
   }
 
+  getLink(destino) {
+    let auxLink = null;
+    this.links.map((link) => {
+      if (link.Destino.id == destino) {
+        auxLink = link;
+      }
+    });
+
+    return auxLink;
+  }
+
   getId() {
     return this.id;
   }
