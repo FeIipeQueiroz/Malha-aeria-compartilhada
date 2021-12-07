@@ -130,9 +130,7 @@ const server = net.createServer((socket) => {
             });
             groupGraph(serverGraphs);
             response.on("end", () => {});
-            response.on("error", () => {
-              console.log("a");
-            });
+            response.on("error", () => {});
           }
         });
         break;
@@ -150,15 +148,62 @@ const server = net.createServer((socket) => {
       case "decreaseSeats":
         decreaseSeats(message.links);
         break;
+      case "updateGraph":
+        serversAdress.forEach((element) => {
+          if (element.id == message.id) {
+            const response = new net.Socket();
+            response.connect(element.port, element.ip);
+            response.write(
+              JSON.stringify({
+                type: "updateGraphReturn",
+                graph: graphForSend,
+                id: process.argv[2],
+              })
+            );
+            response.end();
+            response.on("end", () => {});
+            response.on("error", () => {});
+            serverGraphs.forEach((element) => {
+              if (element.id != process.argv[2]) {
+                element.check = false;
+              }
+              if (element.id == message.id) {
+                auxGraph = new Graph();
+                readGraph(message.id, auxGraph, false, message.graph);
+                element.graph = auxGraph;
+                element.check = true;
+              }
+            });
+            groupGraph(serverGraphs);
+          }
+        });
+        break;
+      case "updateGraphReturn":
+        serverGraphs.forEach((element) => {
+          if (element.id == message.id && !element.check) {
+            auxGraph = new Graph();
+            readGraph(message.id, auxGraph, false, message.graph);
+            element.graph = auxGraph;
+            element.check = true;
+          }
+        });
+        groupGraph(serverGraphs);
+        break;
       default:
         console.log(message);
     }
   });
   socket.on("error", () => {
     socket.end();
+    console.log("Um servidor offline é necessário atualizar o grafo");
+    if (isCoordinator) {
+      updateGraph();
+      groupGraph(serverGraphs);
+    }
     server.getConnections((error, count) => {
       if (count == 0) {
         console.log("Sem conexões. Me tornando o Coordenador");
+
         actualCoordinatorID = process.argv[2];
         isCoordinator = true;
       } else {
@@ -223,11 +268,22 @@ app.post("/purchaseRoute", function (req, res) {
   if (isCoordinator) {
     isPossible = true;
     req.body.route.map((link) => {
-      serverGraphs.map((element) => {
+      serverGraphs.map((element, index) => {
         if (element.id == link.company) {
-          if (
-            element.graph.getNode(link.origem).getLink(link.destino).seats <= 0
-          ) {
+          const socket = new net.Socket();
+          socket.connect(serversAdress[index].port, serversAdress[index].ip);
+          socket.end();
+          socket.on("error", () => {
+            isPossible = false;
+          });
+          if (element.check == true) {
+            if (
+              element.graph.getNode(link.origem).getLink(link.destino).seats <=
+              0
+            ) {
+              isPossible = false;
+            }
+          } else {
             isPossible = false;
           }
         }
@@ -554,5 +610,26 @@ function decreaseSeats(vector) {
         );
       });
     }
+  });
+}
+
+function updateGraph() {
+  serverGraphs.forEach((element) => {
+    if (element.id != process.argv[2]) {
+      element.check = false;
+    }
+  });
+  serversAdress.forEach((element, index) => {
+    const socket = new net.Socket();
+    socket.connect(element.port, element.ip);
+    socket.write(
+      JSON.stringify({
+        type: "updateGraph",
+        id: process.argv[2],
+        graph: graphForSend,
+      })
+    );
+    socket.on("error", () => {});
+    socket.end();
   });
 }
