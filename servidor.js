@@ -221,25 +221,32 @@ app.post("/purchaseRoute", function (req, res) {
   //requestList.push();
 
   if (isCoordinator) {
-    res.write("Servidor " + process.argv[2]);
-
     isPossible = true;
     req.body.route.map((link) => {
-      if (link.seats <= 0) {
-        // Alterar a verificação
-        isPossible = false;
-      }
+      serverGraphs.map((element) => {
+        if (element.id == link.company) {
+          if (
+            element.graph.getNode(link.origem).getLink(link.destino).seats <= 0
+          ) {
+            isPossible = false;
+          }
+        }
+      });
     });
     if (isPossible) {
       reserveSeat(req.body.route);
+      res.json({
+        status: "Reservado com Sucesso",
+      });
     } else {
-      res.write(" Não foi possível");
+      res.json({
+        status: "Não foi possível",
+      });
     }
-
-    res.send();
   } else {
-    res.write("Não sou coordenador");
-    res.send();
+    res.json({
+      status: "Não sou o coordenador",
+    });
   }
 
   //requestList.pop();
