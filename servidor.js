@@ -3,6 +3,7 @@ const Node = require("./Structure/node");
 const Link = require("./Structure/link");
 const fs = require("fs");
 const express = require("express");
+const cors = require("cors");
 
 const net = require("net");
 const { randomInt } = require("crypto");
@@ -30,7 +31,6 @@ let electReturnCount = 0;
 let listForElection = [];
 let requestAmount = randomInt(0, 15);
 
-//if (isMainThread) {
 const IP_HTTP = "26.91.70.227";
 let PORT_HTTP = 8000;
 
@@ -62,10 +62,6 @@ serverGraphs.forEach((element) => {
 });
 
 //--------------------------------------------------------------------------------------------
-
-/*const worker = new Worker(__filename, {
-  workerData: { IP_HTTP: IP_HTTP, PORT_HTTP: PORT_HTTP },
-});*/
 
 //Servidor TCP
 stepOne();
@@ -197,19 +193,28 @@ server.listen(PORT_TCP, IP_TCP, () => {
   console.log("Servidor TCP =", IP_TCP + ":" + PORT_TCP);
   console.log("-------------------------------------");
 });
-//} else {
+
 ///////////////////////////
 //                  ROTAS
 ///////////////////////////
 //Rotas da interface
 const app = express();
 app.use(express.json());
-
-app.get("/searchRoutes", function (req, res) {
+app.use(cors());
+app.post("/searchRoutes", function (req, res) {
   origin = 2;
   destination = 8;
-  res.write(findPath(mainGraph, origin, destination));
-  res.send();
+  if (isCoordinator) {
+    //faz a busca e retorna uma um array com arrays de links
+    res.json({
+      status: "Sou o coordenador",
+      routes: [],
+    });
+  } else {
+    res.json({
+      status: "Não sou o coordenador",
+    });
+  }
 });
 
 app.post("/purchaseRoute", function (req, res) {
@@ -245,7 +250,6 @@ app.listen(PORT_HTTP, IP_HTTP, () => {
   console.log("Servidor HTTP =", IP_HTTP + ":" + PORT_HTTP);
   console.log("-------------------------------------");
 });
-//}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                         FUNÇÕES
