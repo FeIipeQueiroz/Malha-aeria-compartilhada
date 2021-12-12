@@ -10,9 +10,9 @@ const { randomInt } = require("crypto");
 const { Worker, isMainThread, workerData } = require("worker_threads");
 
 let serversAdress = [
-  { ip: "26.91.70.227", port: 7080, id: "A" },
-  { ip: "26.91.70.227", port: 8080, id: "B" },
-  { ip: "26.91.70.227", port: 9080, id: "C" },
+  { ip: "localhost", port: 7080, id: "A" },
+  { ip: "localhost", port: 8080, id: "B" },
+  { ip: "localhost", port: 9080, id: "C" },
 ];
 let isCoordinator = false;
 let actualCoordinatorID = "";
@@ -31,10 +31,10 @@ let electReturnCount = 0;
 let listForElection = [];
 let requestAmount = randomInt(0, 15);
 
-const IP_HTTP = "26.91.70.227";
+const IP_HTTP = "localhost";
 let PORT_HTTP = 8000;
 
-const IP_TCP = "26.91.70.227";
+const IP_TCP = "localhost";
 let PORT_TCP = 8080;
 
 switch (process.argv[2]) {

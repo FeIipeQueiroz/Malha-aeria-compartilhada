@@ -43,8 +43,6 @@ class Graph {
       prev.push([]);
     }
 
-    prev[originId] = null;
-
     let queue = [origin];
     visited.add(origin.getId());
 
@@ -70,7 +68,6 @@ class Graph {
               index < prev[nextNode.getId()].length;
               index++
             ) {
-              console.log(prev[nextNode.getId()][index]);
               if (prev[nextNode.getId()][index] == currentNode.getId()) {
                 repeat = true;
               }
@@ -86,25 +83,78 @@ class Graph {
     return prev;
   }
 
-  reconstruct(origin, end, prev) {
-    let path = [];
-    let visited = []; //em um caminho só pode passar no nó uma vez
-    path.push([end]);
-
-    for (let currentNode = end; currentNode != null; prev[currentNode]) {
-      if (prev[currentNode].length == 1) {
-        path.push(prev[currentNode]);
+  makePath(prev, actualNode, currentPath, end, result, visited) {
+    prev[actualNode].forEach((node) => {
+      if (node == end) {
+        currentPath.push(node);
+        result.push(currentPath);
+        currentPath = [];
       } else {
-        let pathClone = [];
-        for (let index = 0; index < prev[currentNode].length; index++) {
-          pathClone[index] = [...path];
-          pathClone[index].push(prev[currentNode][index]);
+        currentPath.push(node);
+        if (!visited.includes(node)) {
+          visited.push(node);
+          this.makePath(prev, node, currentPath, end, result, visited);
         }
-        for (let index = 0; index < pathClone.length; index++) {
-          path = path.concat(pathClone[index]);
-        }
+        //visited.pop();
+        currentPath.pop();
       }
-      console.log(path);
+    });
+  }
+
+  test(prev, actualNode, end) {
+    var result = [];
+    console.log("asdasd");
+    this.makePath(prev, actualNode, [actualNode], end, result, []);
+    console.log("asdasd");
+    console.log(result);
+    return result;
+  }
+
+  reconstruct(origin, end, prev) {
+    let aux = 0;
+    let boolean = true;
+    let nextNode;
+    let path = [];
+    let auxNode = end;
+    let visited = []; //em um caminho só pode passar no nó uma vez
+    for (let index = 0; index < 10; index++) {
+      visited.push([]);
+    }
+    console.log(visited);
+    path.push([end]);
+    while (boolean) {
+      for (
+        let currentNode = end;
+        prev[currentNode] != null;
+        currentNode = nextNode
+      ) {
+        if (prev[currentNode][aux] != end) {
+          nextNode = prev[currentNode][aux];
+        } else {
+          nextNode = prev[currentNode][aux + 1];
+        }
+
+        aux = 0;
+        for (let indexB = 0; indexB < visited[currentNode].length; indexB++) {
+          if (
+            currentNode == visited[currentNode][indexB] /*&&
+            prev[currentNode].length > 1*/
+          ) {
+            aux = indexB + 1;
+          }
+        }
+        if (aux == 0) {
+          visited[currentNode].push(currentNode);
+        }
+        if (prev[currentNode] == origin) {
+          console.log(prev[currentNode]);
+          console.log("acho :D");
+        }
+        auxNode = currentNode;
+        console.log(currentNode);
+      }
+      console.log(origin);
+      console.log("cabo");
     }
   }
 }

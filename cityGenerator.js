@@ -22,7 +22,7 @@ findPath(graphA);
 
 function findPath(graph) {
   let prev = graph.findRoute(8, 2, 10);
-  path = graph.reconstruct(8, 2, prev);
+  path = graph.test(prev, 2, 8);
   return path;
 }
 
