@@ -32,14 +32,14 @@ class Graph {
     return this.nodes;
   }
 
-  findRoute(originId, destinyId, qntNodes) {
+  findRoute(originId, destinyId) {
     const visited = new Set();
 
     let origin = this.getNode(originId);
 
     let prev = [];
 
-    for (let index = 0; index < qntNodes; index++) {
+    for (let index = 0; index < 10; index++) {
       prev.push([]);
     }
 
@@ -85,27 +85,27 @@ class Graph {
 
   makePath(prev, actualNode, currentPath, end, result, visited) {
     prev[actualNode].forEach((node) => {
-      if (node == end) {
+      if (!visited.includes(node)) {
         currentPath.push(node);
-        result.push(currentPath);
-        currentPath = [];
-      } else {
-        currentPath.push(node);
-        if (!visited.includes(node)) {
-          visited.push(node);
-          this.makePath(prev, node, currentPath, end, result, visited);
+        if (node == end) {
+          let aux = [...currentPath];
+          result.push(aux.reverse());
         }
-        //visited.pop();
+
+        visited.push(node);
+        this.makePath(prev, node, currentPath, end, result, visited);
         currentPath.pop();
+        visited.pop();
       }
     });
   }
 
-  test(prev, actualNode, end) {
+  recursivePath(prev, actualNode, end) {
     var result = [];
-    console.log("asdasd");
-    this.makePath(prev, actualNode, [actualNode], end, result, []);
-    console.log("asdasd");
+    this.makePath(prev, actualNode, [actualNode.toString()], end, result, [
+      actualNode.toString(),
+    ]);
+    console.log("Result:");
     console.log(result);
     return result;
   }

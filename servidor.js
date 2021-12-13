@@ -250,7 +250,9 @@ app.post("/searchRoutes", function (req, res) {
   origin = 2;
   destination = 8;
   if (isCoordinator) {
-    //faz a busca e retorna uma um array com arrays de links
+    let links = [];
+    findPath(mainGraph, 8, 2, links);
+    console.log(links);
     res.json({
       status: "Sou o coordenador",
       routes: [],
@@ -380,10 +382,25 @@ function groupGraph(graph) {
   });
 }
 
-function findPath(graph, originId, destinationId) {
-  let prev = graph.findRoute(originId, destinationId, 10);
-  path = graph.reconstruct(originId, destinationId, prev);
-  return path;
+function findPath(graph, start, end, links) {
+  let prev = graph.findRoute(start, end);
+  path = graph.recursivePath(prev, end, start);
+  path.forEach((route) => {
+    let aux = [];
+    route.forEach((element, index) => {
+      if (route[index + 1]) {
+        link = graph.getNode(element).getLink(route[index + 1]);
+        aux.push({
+          Origem: link.getOrigem().getId(),
+          Destino: link.getDestino().getId(),
+          valor: link.valor,
+          tempo: link.tempo,
+          company: link.company,
+        });
+      }
+    });
+    links.push(aux);
+  });
 }
 
 function reserveSeat(route) {

@@ -18,12 +18,31 @@ console.log("Grafo C:", graphC);*/
 graphA = new Graph();
 readGraph(" Geral", graphA);
 console.log("Grafo geral:", graphA);
-findPath(graphA);
+findPath(graphA, "8", "2");
 
-function findPath(graph) {
-  let prev = graph.findRoute(8, 2, 10);
-  path = graph.test(prev, 2, 8);
-  return path;
+function findPath(graph, start, end) {
+  let prev = graph.findRoute(start, end);
+  let links = [];
+  path = graph.recursivePath(prev, end, start);
+  path.forEach((route) => {
+    let aux = [];
+    route.forEach((element, index) => {
+      if (route[index + 1]) {
+        link = graph.getNode(element).getLink(route[index + 1]);
+        console.log("asdasd");
+        console.log(graph.getNode(element).getLink(route[index + 1]));
+        aux.push({
+          Origem: link.getOrigem().getId(),
+          Destino: link.getDestino().getId(),
+          valor: link.valor,
+          tempo: link.tempo,
+          company: link.company,
+        });
+      }
+    });
+    links.push(aux);
+  });
+  console.log(links);
 }
 
 function generateCity(qntNodes, qntLinks) {
