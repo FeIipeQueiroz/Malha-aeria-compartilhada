@@ -18,11 +18,14 @@ console.log("Grafo C:", graphC);*/
 graphA = new Graph();
 readGraph(" Geral", graphA);
 console.log("Grafo geral:", graphA);
-findPath(graphA, "8", "2");
+let links = [];
+findPath(graphA, "8", "2", links);
 
-function findPath(graph, start, end) {
-  let prev = graph.findRoute(start, end);
-  let links = [];
+function findPath(graph, start, end, links) {
+  let prev = [];
+  graph.findRoute(start, end, prev);
+  console.log(prev);
+
   path = graph.recursivePath(prev, end, start);
   path.forEach((route) => {
     let aux = [];

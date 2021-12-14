@@ -16,6 +16,7 @@ class Graph {
         foundNode = this.nodes[index];
       }
     }
+
     return foundNode;
   }
 
@@ -32,12 +33,10 @@ class Graph {
     return this.nodes;
   }
 
-  findRoute(originId, destinyId) {
+  findRoute(originId, destinyId, prev) {
     const visited = new Set();
 
     let origin = this.getNode(originId);
-
-    let prev = [];
 
     for (let index = 0; index < 10; index++) {
       prev.push([]);
@@ -79,8 +78,6 @@ class Graph {
         }
       }
     }
-    console.log(prev);
-    return prev;
   }
 
   makePath(prev, actualNode, currentPath, end, result, visited) {

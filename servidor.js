@@ -189,6 +189,16 @@ const server = net.createServer((socket) => {
         });
         groupGraph(serverGraphs);
         break;
+      case "updateSeats":
+        console.log("Atualizando assentos...");
+        message.route.forEach((link) => {
+          serverGraphs.map((element) => {
+            if (element.id == link.company) {
+              element.graph.getNode(link.Origem).getLink(link.Destino).seats--;
+            }
+          });
+        });
+        break;
       default:
         console.log(message);
     }
@@ -251,11 +261,10 @@ app.post("/searchRoutes", function (req, res) {
   destination = 8;
   if (isCoordinator) {
     let links = [];
-    findPath(mainGraph, 8, 2, links);
-    console.log(links);
+    findPath(mainGraph, req.body.origem, req.body.destino, links);
     res.json({
       status: "Sou o coordenador",
-      routes: [],
+      routes: links,
     });
   } else {
     res.json({
@@ -271,22 +280,24 @@ app.post("/purchaseRoute", function (req, res) {
     isPossible = true;
     req.body.route.map((link) => {
       serverGraphs.map((element, index) => {
-        if (element.id == link.company) {
-          const socket = new net.Socket();
-          socket.connect(serversAdress[index].port, serversAdress[index].ip);
-          socket.end();
-          socket.on("error", () => {
-            isPossible = false;
-          });
-          if (element.check == true) {
-            if (
-              element.graph.getNode(link.origem).getLink(link.destino).seats <=
-              0
-            ) {
+        if (element.graph.length != 0) {
+          if (element.id == link.company) {
+            const socket = new net.Socket();
+            socket.connect(serversAdress[index].port, serversAdress[index].ip);
+            socket.end();
+            socket.on("error", () => {
+              isPossible = false;
+            });
+            if (element.check == true) {
+              if (
+                element.graph.getNode(link.Origem).getLink(link.Destino)
+                  .seats <= 0
+              ) {
+                isPossible = false;
+              }
+            } else {
               isPossible = false;
             }
-          } else {
-            isPossible = false;
           }
         }
       });
@@ -319,12 +330,6 @@ app.listen(PORT_HTTP, IP_HTTP, () => {
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                         FUNÇÕES
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-//findPath(graph); //retorna um array de strings com todos os caminhos, para passar para a interface.
-//console.log("Grafo :" + process.argv[2] + ":", graph);
-//groupGraph(graph);
-//findPath(graph); //retorna um array de strings com todos os caminhos, para passar para a interface.
-
-//ler o grafo do arquivo, agrupar grafo, buscar caminho, reservar vagas, função de eleição.
 
 function readGraph(text, graph, flag, string) {
   var graphInfo;
@@ -364,12 +369,12 @@ function readGraph(text, graph, flag, string) {
 
 function groupGraph(graph) {
   let graphMerged = new Graph();
-  console.log("Agrupando grafos");
+  console.log("Agrupando grafos...");
   graph.forEach((element) => {
     if (element.check == true) {
       for (let index = 0; index < element.graph.nodes.length; index++) {
         let aux = graphMerged.getNode(element.graph.nodes[index].id);
-        if (aux.id == undefined) {
+        if (!aux.id) {
           graphMerged.addNode(element.graph.nodes[index]);
         } else {
           element.graph.nodes[index].getLinks().forEach((link) => {
@@ -383,19 +388,21 @@ function groupGraph(graph) {
 }
 
 function findPath(graph, start, end, links) {
-  let prev = graph.findRoute(start, end);
-  path = graph.recursivePath(prev, end, start);
+  let prev = [];
+  graph.findRoute(start, end, prev);
+  let path = graph.recursivePath(prev, end, start);
   path.forEach((route) => {
     let aux = [];
     route.forEach((element, index) => {
       if (route[index + 1]) {
-        link = graph.getNode(element).getLink(route[index + 1]);
+        let link = graph.getNode(element).getLink(route[index + 1]);
         aux.push({
           Origem: link.getOrigem().getId(),
           Destino: link.getDestino().getId(),
           valor: link.valor,
           tempo: link.tempo,
           company: link.company,
+          seats: link.seats,
         });
       }
     });
@@ -621,13 +628,26 @@ function decreaseSeats(vector) {
   serverGraphs.map((element) => {
     if (element.id == process.argv[2]) {
       vector.map((link) => {
-        element.graph.getNode(link.origem).getLink(link.destino).seats--;
-        console.log(
-          element.graph.getNode(link.origem).getLink(link.destino).seats
-        );
+        element.graph.getNode(link.Origem).getLink(link.Destino).seats--;
       });
     }
   });
+  if (isCoordinator) {
+    serversAdress.forEach((element, index) => {
+      if (element.id != process.argv[2]) {
+        const socket = new net.Socket();
+        socket.connect(element.port, element.ip);
+        socket.write(
+          JSON.stringify({
+            type: "updateSeats",
+            route: vector,
+          })
+        );
+        socket.on("error", () => {});
+        socket.end();
+      }
+    });
+  }
 }
 
 function updateGraph() {
