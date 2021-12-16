@@ -10,16 +10,15 @@ const { randomInt } = require("crypto");
 const { Worker, isMainThread, workerData } = require("worker_threads");
 
 let serversAdress = [
-  { ip: "localhost", port: 7080, id: "A" },
-  { ip: "localhost", port: 8080, id: "B" },
-  { ip: "localhost", port: 9080, id: "C" },
+  { ip: "26.91.70.227", port: 7080, id: "A" },
+  { ip: "26.91.70.227", port: 8080, id: "B" },
+  { ip: "26.91.70.227", port: 9080, id: "C" },
 ];
 let isCoordinator = false;
 let actualCoordinatorID = "";
 let graphForSend;
 let disconnectCounter = 0;
 let priorityList = [];
-let requestList = [];
 
 let serverGraphs = [
   { id: "A", graph: [], check: false },
@@ -29,12 +28,12 @@ let serverGraphs = [
 
 let electReturnCount = 0;
 let listForElection = [];
-let requestAmount = randomInt(0, 15);
+let requestAmount = 0;
 
-const IP_HTTP = "localhost";
+const IP_HTTP = "26.91.70.227";
 let PORT_HTTP = 8000;
 
-const IP_TCP = "localhost";
+const IP_TCP = "26.91.70.227";
 let PORT_TCP = 8080;
 
 switch (process.argv[2]) {
@@ -89,16 +88,21 @@ const server = net.createServer((socket) => {
         break;
       case "electReturn":
         server.getConnections((error, count) => {
+          console.log("electReturn");
           electReturnCount++;
-          if (electReturnCount == count / 2) {
-            electReturnCount = 0;
+          console.log(electReturnCount, count);
+          if (electReturnCount >= count / 2) {
             listForElection.push(message);
+            electReturnCount = 0;
+            console.log(listForElection);
+
             verifyRequestAmount(listForElection);
             listForElection = [];
           } else {
             listForElection.push(message);
           }
         });
+
         break;
       case "electionResult":
         if (message.id == process.argv[2]) {
@@ -238,7 +242,6 @@ setInterval(() => {
   server.getConnections((error, count) => {
     if (isCoordinator && count > 0) {
       console.log("Iniciando uma nova eleição...");
-
       elect();
     }
   });
@@ -257,24 +260,20 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.post("/searchRoutes", function (req, res) {
+  requestAmount++;
   origin = 2;
   destination = 8;
-  if (isCoordinator) {
-    let links = [];
-    findPath(mainGraph, req.body.origem, req.body.destino, links);
-    res.json({
-      status: "Sou o coordenador",
-      routes: links,
-    });
-  } else {
-    res.json({
-      status: "Não sou o coordenador",
-    });
-  }
+  let links = [];
+  findPath(mainGraph, req.body.origem, req.body.destino, links);
+  requestAmount--;
+  res.json({
+    status: "OK",
+    routes: links,
+  });
 });
 
 app.post("/purchaseRoute", function (req, res) {
-  //requestList.push();
+  requestAmount++;
 
   if (isCoordinator) {
     isPossible = true;
@@ -304,10 +303,12 @@ app.post("/purchaseRoute", function (req, res) {
     });
     if (isPossible) {
       reserveSeat(req.body.route);
+      requestAmount = 0;
       res.json({
         status: "Reservado com Sucesso",
       });
     } else {
+      requestAmount--;
       res.json({
         status: "Não foi possível",
       });
@@ -549,7 +550,7 @@ function verifyRequestAmount(rcvListForElection) {
   result = { requestAmount: 0, id: "" };
   rcvListForElection.forEach((element) => {
     priorityListAux.push(element);
-    if (element.requestAmount > result.requestAmount) {
+    if (element.requestAmount >= result.requestAmount) {
       result = element;
     }
   });
